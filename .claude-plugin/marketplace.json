@@ -1,0 +1,21 @@
+{
+  "name": "effective-requirements-analysis",
+  "owner": {
+    "name": "yangdavip"
+  },
+  "metadata": {
+    "description": "给 B 端产品经理用的需求分析 skill：先向客户提问澄清问题，再产出全套可追溯的需求文档",
+    "version": "1.0.0"
+  },
+  "plugins": [
+    {
+      "name": "effective-requirements-analysis",
+      "description": "B 端需求分析工作流：访谈提问 → 假设登记 → 四条主线需求 → 阶段闸门强制自检，产出全套可追溯的需求文档",
+      "source": "./",
+      "strict": false,
+      "skills": [
+        "./skills/effective-requirements-analysis"
+      ]
+    }
+  ]
+}
