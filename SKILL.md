@@ -1,11 +1,11 @@
 ---
 name: effective-requirements-analysis
-description: Use when a user brings a feature request, change request, improvement idea, or vague business problem and wants it turned into a written specification, PRD, or requirements document — especially when what they asked for is a solution ("add a page", "add a filter", "make it exportable") while the underlying problem, business process, stakeholders, data, or quality requirements are still unknown. Triggers on 需求分析, 需求文档, 需求规格说明书, 写需求, 功能实现, 需求澄清, 把需求理清楚.
+description: Use when a product manager brings a feature request, change request, improvement idea, customer complaint, or vague business problem and wants it turned into a written specification, PRD, or requirements document — especially when what they asked for is a solution ("add a page", "add a filter", "make it exportable", "客户老说撞单") while the underlying problem, business process, stakeholders, data, or quality requirements are still unknown. Triggers on 需求分析, 需求文档, 需求规格说明书, PRD, 写需求, 需求澄清, 把需求理清楚, 访谈, 需求评审, 需求梳理.
 ---
 
 # 有效需求分析
 
-组织应用类软件（B 端系统）的需求分析方法论，源自《有效需求分析（第 2 版）》(徐锋，电子工业出版社)。
+面向 **B 端系统**产品经理的需求分析方法与工具集：把一句含糊的业务诉求，变成一整套可追溯、可评审、可开发的需求文档。
 
 **核心原理：需求 = 预期 − 现状。** 用户提出来的永远是"方案级需求"（加个页面、加个筛选、支持导出）。需求分析要做的是绕过方案，还原出"问题级需求"（谁、在什么业务场景下、受什么影响、损失什么），再由分析人员提出成本更合适的解决方案。
 
