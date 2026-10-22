@@ -221,42 +221,67 @@ skill 会：
 
 ## 安装
 
+**方式一：通用 skills 安装器（推荐）**
+
 ```bash
-git clone https://github.com/yangdavip/effective-requirements-analysis-skill.git \
+npx skills add yangdavip/effective-requirements-analysis-skill
+```
+
+**方式二：手动 clone**
+
+仓库根目录是 `skills/` 子目录布局，skill 本体在 `skills/effective-requirements-analysis/`，要复制的是这一层：
+
+```bash
+git clone --depth 1 https://github.com/yangdavip/effective-requirements-analysis-skill.git /tmp/era
+cp -R /tmp/era/skills/effective-requirements-analysis \
   ~/.skills-manager/skills/effective-requirements-analysis
 ```
 
-软链到对应 harness 的 skills 目录：
+然后软链到对应 harness 的 skills 目录：
 
 ```bash
 ln -s ~/.skills-manager/skills/effective-requirements-analysis \
   ~/.workbuddy/skills/effective-requirements-analysis      # WorkBuddy
 ln -s ~/.skills-manager/skills/effective-requirements-analysis \
-  ~/.config/opencode/skills/effective-requirements-analysis # opencode / AspireCode
+  ~/.aspirecode/skills/effective-requirements-analysis      # AspireCode
 ln -s ~/.skills-manager/skills/effective-requirements-analysis \
   ~/.dsh/skills/effective-requirements-analysis             # DeepSeek Harness
+ln -s ~/.skills-manager/skills/effective-requirements-analysis \
+  ~/.config/opencode/skills/effective-requirements-analysis # opencode
 ln -s ~/.skills-manager/skills/effective-requirements-analysis \
   ~/.agents/skills/effective-requirements-analysis           # 通用 agents
 ```
 
 直接复制整个目录进任意 skills 目录也可以。脚本只用 Python 标准库，零外部依赖。
 
+**Claude Code 用户**：
+
+```
+/plugin marketplace add yangdavip/effective-requirements-analysis-skill
+```
+
 ---
 
 ## 目录结构
 
 ```
-effective-requirements-analysis/
-├── SKILL.md                      # 方法论主体：阶段闸门、编号体系、提问规范、17 项分析任务
-├── references/
-│   ├── interview-playbook.md     # 提问技巧库：怎么把"你想要什么"问成"你被什么困扰了"
-│   ├── task-playbook.md          # 17 项分析任务与剪裁条件
-│   └── artifacts.md              # 全套产物模板
-├── templates/
-│   ├── srs-outline.md            # 需求规格说明书骨架
-│   └── daily-change.md           # 日常变更型需求模板
-└── scripts/
-    └── check_artifacts.py        # 三阶段自检脚本
+effective-requirements-analysis-skill/
+├── skills/
+│   └── effective-requirements-analysis/     # skill 本体
+│       ├── SKILL.md                      # 方法论主体：阶段闸门、编号体系、提问规范、17 项分析任务
+│       ├── references/
+│       │   ├── interview-playbook.md     # 提问技巧库：怎么把"你想要什么"问成"你被什么困扰了"
+│       │   ├── task-playbook.md          # 17 项分析任务与剪裁条件
+│       │   └── artifacts.md              # 全套产物模板
+│       ├── templates/
+│       │   ├── srs-outline.md            # 需求规格说明书骨架
+│       │   └── daily-change.md           # 日常变更型需求模板
+│       └── scripts/
+│           └── check_artifacts.py        # 三阶段自检脚本
+├── .claude-plugin/
+│   └── marketplace.json                  # Claude Code 插件市场封装
+├── README.md
+└── LICENSE
 ```
 
 ---
