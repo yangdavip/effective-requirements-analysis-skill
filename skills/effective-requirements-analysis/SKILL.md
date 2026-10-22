@@ -1,6 +1,9 @@
 ---
 name: effective-requirements-analysis
 description: Use when a product manager brings a feature request, change request, improvement idea, customer complaint, or vague business problem and wants it turned into a written specification, PRD, or requirements document — especially when what they asked for is a solution ("add a page", "add a filter", "make it exportable", "客户老说撞单") while the underlying problem, business process, stakeholders, data, or quality requirements are still unknown. Triggers on 需求分析, 需求文档, 需求规格说明书, PRD, 写需求, 需求澄清, 把需求理清楚, 访谈, 需求评审, 需求梳理.
+license: MIT
+metadata:
+  version: "1.0.0"
 ---
 
 # 有效需求分析
