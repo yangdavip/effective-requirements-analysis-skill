@@ -39,7 +39,39 @@ from collections import defaultdict
 
 # G1 阶段允许的文件名 —— 精确白名单，不接受"名字里带这几个词就行"
 # 允许 "<系统名>_需求澄清问题清单.md" 与 "<系统名>_访谈记录与假设登记册.md"
-G1_ALLOWED_BASENAMES = ("需求澄清问题清单.md", "访谈记录与假设登记册.md")
+# 英文版对应 "<系统>_clarification-questions.md" 与 "<系统>_interview-assumption-register.md"
+G1_ALLOWED_BASENAMES = (
+    "需求澄清问题清单.md", "访谈记录与假设登记册.md",
+    "clarification-questions.md", "interview-assumption-register.md",
+)
+
+# 疑问句豁免只在"问题清单"这类文件里生效（登记册里不该有疑问句）
+G1_QUESTION_LIST_BASENAMES = ("需求澄清问题清单.md", "clarification-questions.md")
+
+# S-xx 登记册（S-xx 唯一定义处）的文件名特征
+G1_REGISTER_BASENAMES = ("访谈记录与假设登记册.md", "interview-assumption-register.md")
+
+# S-xx 登记表的列名识别 —— 中英双语
+SXX_VERIFICATION_COLUMNS = (
+    "验证方式", "如何验证", "验证方法", "验证手段",
+    "verification method", "how to verify", "verification", "validate how",
+)
+SXX_CONSEQUENCE_COLUMNS = (
+    "验证不成立的后果", "不成立的后果", "后果",
+    "consequence if", "consequences if", "consequence", "impact if", "if it fails",
+)
+
+
+def _row_has_verification_and_consequence(row):
+    """这一行里是否同时出现"验证方式"与"不成立的后果"的说明（双语）。"""
+    low = row.lower()
+    has_verify = any(k in row for k in SXX_VERIFICATION_COLUMNS) or any(
+        k in low for k in ("verif", "validat", "confirm")
+    )
+    has_consequence = any(k in row for k in SXX_CONSEQUENCE_COLUMNS) or any(
+        k in low for k in ("consequence", "impact if", "if it fails", "fails")
+    )
+    return has_verify and has_consequence
 
 # G1 阶段允许出现的编号前缀 —— 只有访谈族系的四类
 G1_ALLOWED_PREFIXES = ("Q", "A", "S", "T")
@@ -51,6 +83,17 @@ G1_HEADING_MARKERS = (
     "业务规则", "需求规格说明书", "状态机", "类图", "实体关系", "流程图",
     "表结构", "业务数据", "业务报表", "价值评估", "优先级评估", "追溯矩阵",
     "验收标准", "维护需求", "业务规则描述",
+    # 英文
+    "feature list", "feature requirement", "functional requirement",
+    "non-functional requirement", "nonfunctional requirement",
+    "domain model", "business process", "process flow", "workflow",
+    "business scenario", "scenario analysis", "problem card",
+    "stakeholder", "control point", "quality scenario",
+    "business rule", "requirements specification", "state machine",
+    "class diagram", "entity relationship", "flowchart", "flow chart",
+    "data model", "business report", "value assessment",
+    "priority assessment", "traceability matrix", "acceptance criteri",
+    "maintenance requirement",
 )
 
 # G1 阶段的表格：表头出现这些词 = 这张表是分析结论表
@@ -61,6 +104,15 @@ G1_TABLE_HEADER_MARKERS = (
     "干系人", "问题卡片", "管控点", "验收标准", "质量场景", "业务规则",
     "需求规格说明书", "报表", "状态机", "类图", "实体关系", "流程图",
     "表结构", "字段包括", "模块", "子系统", "步骤", "动作",
+    # 英文
+    "business process", "process step", "process name", "trigger condition",
+    "owner", "responsible", "business scenario", "scenario",
+    "domain model", "domain class", "functional requirement", "feature list",
+    "stakeholder", "problem card", "control point", "acceptance criteri",
+    "quality scenario", "business rule", "requirements specification",
+    "report", "state machine", "class diagram", "entity relationship",
+    "flowchart", "flow chart", "table structure", "fields include",
+    "module", "subsystem", "step", "action",
 )
 
 # G1 阶段：正文出现这些强断言 = 分析结论（不是问题，是结论）
@@ -78,6 +130,15 @@ G1_ASSERTION_PATTERNS = (
     re.compile(r"包含以下"),
     re.compile(r"分为以下"),
     re.compile(r"设计为"),
+    # 英文
+    re.compile(r"\b(?:the|this)\s+system\s+(?:shall|must|should|will|needs? to)\b", re.IGNORECASE),
+    re.compile(r"\b(?:the|this)\s+system\s+(?:includes?|contains?|consists? of|is composed of|is divided)\b", re.IGNORECASE),
+    re.compile(r"\bshall\s+(?:include|provide|support|contain|cover|be divided|be designed)\b", re.IGNORECASE),
+    re.compile(r"\bmust\s+(?:include|provide|support|contain|cover)\b", re.IGNORECASE),
+    re.compile(r"\bshould\s+(?:include|provide|support|contain)\b", re.IGNORECASE),
+    re.compile(r"\bincludes?\s+the\s+following\b", re.IGNORECASE),
+    re.compile(r"\bdivided\s+into\s+the\s+following\b", re.IGNORECASE),
+    re.compile(r"\bdesigned\s+as\s+(?:a|an|the)\b", re.IGNORECASE),
 )
 
 # G1 阶段：代码块里画流程图 = 分析结论
@@ -98,21 +159,36 @@ G1_DIAGRAM_PATTERNS = (
 #   · 含中文标点 —— 是完整句子，不是清单项
 #   · 长度 > 20 —— 是解释性文字，不是清单项
 G1_NOMINAL_ITEM_MAX = 20
+# 英文一个单词约 5–8 字符，长度上限需单独放宽，否则英文清单项全部漏判
+G1_NOMINAL_ITEM_MAX_EN = 60
 G1_NOMINAL_RUN = 3
 
 # 术语/口径类章节里的名词速查列表是合法的，不算"功能清单"
 G1_NOMINAL_EXEMPT_HEADING = (
     "术语", "口径", "名词", "缩写", "简称", "解释", "对照", "速查",
+    # 英文
+    "glossary", "terminology", "term", "definition", "abbreviation",
+    "acronym", "quick reference", "cheat sheet", "reference table",
 )
 
 # 汇总型产物：其编号是"复述上游"的引用，不参与族系冲突判定
 # 判定按文件名**结尾**匹配，不做子串包含 —— 否则改个名就能豁免
-SUMMARY_ARTIFACT_KEYWORDS = ("需求规格说明书", "需求优先级评估", "变更分析表")
+SUMMARY_ARTIFACT_KEYWORDS = (
+    "需求规格说明书", "需求优先级评估", "变更分析表",
+    # 英文
+    "requirements-specification", "requirements specification",
+    "priority-assessment", "priority assessment",
+    "change-log", "change log", "change-analysis",
+)
 
 # 出现在 S-xx 描述里说明混入了分析结论的特征词
 STRUCTURE_MARKERS = (
     "状态机", "流程图", "领域模型", "类图", "实体关系", "状态流转",
     "字段包括", "表结构", "分为以下", "包含以下模块",
+    # 英文
+    "state machine", "flowchart", "flow chart", "domain model",
+    "class diagram", "entity relationship", "state transition",
+    "fields include", "table structure", "divided into", "consists of the following",
 )
 
 # 编号后面不能再跟字母数字（避免 BR-19b 被误读成 BR-19）
@@ -144,7 +220,11 @@ TRACEABLE_PREFIXES = ("F", "NFR", "AC", "MR")
 PARTICULAR_RE = re.compile(r"^(?:的|之)|^([前后中内])(?:的|之)")
 
 # 表头里代表"这条记录叫什么"的列 —— 优先取这类单元格做描述
-NAME_HEADER_RE = re.compile(r"名称|标题|内容|描述|说明|规则内容|需求|问题|假设内容|摘要")
+NAME_HEADER_RE = re.compile(
+    r"名称|标题|内容|描述|说明|规则内容|需求|问题|假设内容|摘要"
+    r"|name|title|description|detail|content|summary|assumption|requirement",
+    re.IGNORECASE,
+)
 
 # 语义角色：表头/标题里的关键词 → 这个族系在讲什么
 # 顺序即优先级（先匹配到的赢）
@@ -176,10 +256,42 @@ ROLE_KEYWORDS = (
     ("结论", "结论"),
     ("步骤", "流程"),
     ("动作", "流程"),
+    # 英文
+    ("assumption", "假设"),
+    ("glossary", "术语"),
+    ("terminology", "术语"),
+    ("term ", "术语"),
+    ("fact", "事实"),
+    ("confirmed", "事实"),
+    ("problem card", "问题"),
+    ("issue", "问题"),
+    ("question", "问题"),
+    ("rule", "规则"),
+    ("constraint", "约束"),
+    ("control point", "管控"),
+    ("report", "报表"),
+    ("quality", "质量"),
+    ("domain", "领域"),
+    ("stakeholder", "干系人"),
+    ("process", "流程"),
+    ("workflow", "流程"),
+    ("step", "流程"),
+    ("scenario", "场景"),
+    ("requirement", "需求"),
+    ("feature", "需求"),
+    ("data", "数据"),
+    ("priority", "优先级"),
+    ("traceab", "追溯"),
+    ("coverage", "追溯"),
+    ("conclusion", "结论"),
 )
 
 # 角色判定时忽略的"通用"栏目词 —— 它们不携带族系信息
-ROLE_IGNORE = ("编号", "名称", "标题", "说明", "描述", "备注", "内容", "摘要")
+ROLE_IGNORE = (
+    "编号", "名称", "标题", "说明", "描述", "备注", "内容", "摘要",
+    "id", "no.", "no", "name", "title", "note", "remark", "comment",
+    "description", "detail", "content", "summary",
+)
 
 # 族系相似度阈值：低于此值即认为两个族系不相交（同一前缀被复用）
 COHORT_JACCARD_MIN = 0.6
@@ -226,6 +338,8 @@ def is_pure_reflist(cell):
     if not c or c in {"—", "-", "–", "/", "同上", "N/A", "n/a", "无"}:
         return True
     if re.fullmatch(r"(见|参见|详见|同上|同前|参考)", c):
+        return True
+    if re.fullmatch(r"(?i)(see|refer to|as above|same as|ref:|reference)", c):
         return True
     if re.fullmatch(r"[A-Z]{1,4}-\d{1,4}(\s*[、,，/；;]\s*[A-Z]{1,4}-\d{1,4})*", c):
         return True
@@ -275,12 +389,16 @@ def map_role(text):
     """从表头/标题文字里提取语义角色。"""
     if not text:
         return None
+    low = text.lower()
     for kw, role in ROLE_KEYWORDS:
-        if kw in text:
-            # 命中的是通用栏目词时不算 —— "编号|说明" 说明不了任何族系
-            if kw in ROLE_IGNORE:
-                continue
-            return role
+        # 英文关键词大小写不敏感；中文关键词原样匹配
+        hit = kw.lower() in low if re.search(r"[A-Za-z]", kw) else kw in text
+        if not hit:
+            continue
+        # 命中的是通用栏目词时不算 —— "编号|说明" 说明不了任何族系
+        if kw in ROLE_IGNORE or kw.lower() in ROLE_IGNORE:
+            continue
+        return role
     return None
 
 
@@ -590,6 +708,20 @@ def check_g1_gate(root, files, docs):
     return problems
 
 
+def _match_marker(markers, text):
+    """在文本里找第一个命中的特征词（英文大小写不敏感）。"""
+    if not text:
+        return None
+    low = text.lower()
+    for m in markers:
+        if re.search(r"[A-Za-z]", m):
+            if m.lower() in low:
+                return m
+        elif m in text:
+            return m
+    return None
+
+
 def check_g1_content(path, text):
     """检查 G1 允许的两份文件里是否混进了分析结论。"""
     problems = []
@@ -600,7 +732,7 @@ def check_g1_content(path, text):
         # 1) 标题里出现分析产物名
         if blk["type"] == "heading":
             text_head = blk["rows"][0]
-            hit = next((m for m in G1_HEADING_MARKERS if m in text_head), None)
+            hit = _match_marker(G1_HEADING_MARKERS, text_head)
             if hit:
                 problems.append(
                     f"G1 闸门：{name} 的标题出现分析产物『{hit}』"
@@ -613,7 +745,7 @@ def check_g1_content(path, text):
             header = blk["header"]
             if header:
                 for cell in header:
-                    hit = next((m for m in G1_TABLE_HEADER_MARKERS if m in cell), None)
+                    hit = _match_marker(G1_TABLE_HEADER_MARKERS, cell)
                     if hit:
                         problems.append(
                             f"G1 闸门：{name} 的表格表头出现分析结论特征词"
@@ -645,8 +777,8 @@ def check_g1_content(path, text):
         if not body:
             continue
         # 整句是疑问 → 放过（问句本身不是结论）
-        # 但只在《需求澄清问题清单》里放过 —— 登记册里不该有疑问句
-        if "需求澄清问题清单" in name and re.search(r"[？?]\s*$", body):
+        # 但只在"问题清单"这类文件里放过 —— 登记册里不该有疑问句
+        if name.endswith(G1_QUESTION_LIST_BASENAMES) and re.search(r"[？?]\s*$", body):
             continue
         # 按句读切分：只对"陈述句"判断断言
         for seg in re.split(r"[。！？；]", body):
@@ -678,15 +810,46 @@ def check_g1_content(path, text):
 
 
 def is_nominal_item(s):
-    """这一行是不是"清单项"—— 纯中文短名词短语。
+    """这一行是不是"清单项"—— 短名词短语（中文或英文）。
 
     用来识别没编号的功能/能力清单：
+      中文：
       · 必须是纯中文（可含空格与全角标点）—— 含 ASCII 字母数字的是编号说明
       · 不能有中文句读 —— 有句读的是解释性句子
       · 长度不超过上限 —— 长的都是解释性文字
+      英文：
+      · 必须是 1–5 个单词构成的名词短语
+      · 不能含动词性/句子性结构（含 is/are/will/should/must、句末标点等）
+      · 长度不超过上限
     """
     s = s.strip()
-    if not s or len(s) > G1_NOMINAL_ITEM_MAX:
+    if not s:
+        return False
+
+    # 英文清单项：1–5 个单词，无句法标记
+    if re.search(r"[A-Za-z]", s):
+        if len(s) > G1_NOMINAL_ITEM_MAX_EN:
+            return False
+        if re.search(r"[，。；：？！、（）「」《》“”‘’]", s):
+            return False
+        if re.search(r"[.;:!?()\[\]{}\"'`,]", s):
+            return False
+        # 含系动词/情态动词 → 是句子不是清单项
+        if re.search(
+            r"\b(?:is|are|was|were|be|been|will|shall|should|must|can|could|"
+            r"would|may|might|has|have|had|does|do|did|that|which|when|"
+            r"if|because|so|then|than)\b",
+            s,
+            re.IGNORECASE,
+        ):
+            return False
+        words = re.findall(r"[A-Za-z][A-Za-z'\-]*", s)
+        if not (1 <= len(words) <= 5):
+            return False
+        return True
+
+    # 中文清单项
+    if len(s) > G1_NOMINAL_ITEM_MAX:
         return False
     if re.search(r"[A-Za-z0-9]", s):
         return False
@@ -892,7 +1055,11 @@ def check_sxx_purity(docs):
                 if not d or d[0] != "S" or not subj:
                     continue
                 for marker in STRUCTURE_MARKERS:
-                    if marker in subj:
+                    if re.search(r"[A-Za-z]", marker):
+                        matched = marker.lower() in subj.lower()
+                    else:
+                        matched = marker in subj
+                    if matched:
                         problems.append(
                             f"S-xx 混入分析结论：{os.path.basename(f)} 的 "
                             f"S-{d[1]:02d} 出现结构特征词『{marker}』"
@@ -913,7 +1080,9 @@ def check_sxx_columns(docs):
     problems = []
     for f, text in docs.items():
         name = os.path.basename(f)
-        is_register = "访谈记录与假设登记册" in name
+        is_register = name.endswith(G1_REGISTER_BASENAMES) or any(
+            k in name for k in ("假设", "访谈")
+        ) or any(k in name.lower() for k in ("assumption", "interview", "register"))
         for blk in split_blocks(text):
             if blk["type"] != "table":
                 # S-xx 写成列表项/标题 → 无法按列校验，
@@ -924,7 +1093,7 @@ def check_sxx_columns(docs):
                         continue
                     if not (is_register or "假设" in name or "访谈" in name):
                         continue
-                    if "验证" in row and "后果" in row:
+                    if _row_has_verification_and_consequence(row):
                         continue
                     problems.append(
                         f"S-xx 未写验证方式与不成立的后果：{name} 的 S-{d[1]:02d}"
@@ -942,7 +1111,10 @@ def check_sxx_columns(docs):
                 continue
             # 只有登记册、或表头自称"假设内容"的表，才按假设登记表对待
             looks_like_register = bool(
-                header and any("假设内容" in h for h in header)
+                header and any(
+                    ("假设内容" in h) or ("assumption" in h.lower())
+                    for h in header
+                )
             )
             if not (is_register or looks_like_register):
                 continue
@@ -955,9 +1127,9 @@ def check_sxx_columns(docs):
                     )
                 continue
 
-            v_idx = find_column(header, ("验证方式", "如何验证", "验证方法", "验证手段"))
-            c_idx = find_column(header, ("验证不成立的后果", "不成立的后果", "后果"))
-            st_idx = find_column(header, ("状态",))
+            v_idx = find_column(header, SXX_VERIFICATION_COLUMNS)
+            c_idx = find_column(header, SXX_CONSEQUENCE_COLUMNS)
+            st_idx = find_column(header, ("状态", "status"))
             if v_idx is None:
                 problems.append(
                     f"S-xx 登记表缺列：{name} 的 S-xx 表格"
@@ -980,7 +1152,11 @@ def check_sxx_columns(docs):
                 if not is_empty_cell(cells[c_idx]):
                     continue
                 status = cells[st_idx] if st_idx is not None and st_idx < len(cells) else ""
-                if not re.search(r"已关闭|作废|已验证|不适用|无需验证", status):
+                if not re.search(
+                    r"已关闭|作废|已验证|不适用|无需验证|closed|void|verified|n/a|not applicable",
+                    status,
+                    re.IGNORECASE,
+                ):
                     problems.append(
                         f"S-xx 未写不成立的后果：{name} 的 {label}"
                     )
@@ -988,12 +1164,19 @@ def check_sxx_columns(docs):
 
 
 def find_column(header, keywords):
-    """在表头里找出与任一关键词匹配的列号。"""
+    """在表头里找出与任一关键词匹配的列号。
+
+    英文表头大小写混合（"Verification Method"），故对 ASCII 关键词
+    做大小写不敏感匹配；中文关键词原样匹配。
+    """
     for idx, h in enumerate(header):
         if not h:
             continue
+        h_low = h.lower()
         for kw in keywords:
             if kw in h:
+                return idx
+            if re.search(r"[A-Za-z]", kw) and kw.lower() in h_low:
                 return idx
     return None
 
